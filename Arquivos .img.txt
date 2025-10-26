@@ -1,0 +1,67 @@
+dt01.img
+Modelos 3D e animações de jogadores e elementos do jogo
+
+dt02.img
+Dados de estádios, incluindo geometria, texturas e configurações
+
+dt03.img
+Dados de ligas e competições, incluindo regras, calendários e estruturas
+
+dt04.img
+Dados de jogadores, incluindo atributos, habilidades e características
+
+dt05_*.img
+Variantes regionais de dados, possivelmente traduções e adaptações locais
+
+dt06.img
+Recursos gráficos de interface do usuário, menus e elementos de HUD
+
+dt07.img
+Texturas de alta resolução para uniformes, faces de jogadores e detalhes visuais
+
+dt08.img
+Áudio, comentários e efeitos sonoros do jogo
+
+dt09.img
+Animações de alta qualidade, replays e sequências cinemáticas
+
+dt10.img
+Dados de configuração ou metadados do jogo
+
+dt11.img
+Banco de dados de times, ligas e competições históricas
+
+dt0a.img
+Dados de configuração para modos de jogo
+
+dt0b.img
+Dados de configuração para editores e ferramentas internas
+
+dt0c.img
+Texturas e recursos gráficos de alta resolução para estádios e ambientes
+
+dt0d.img
+Recursos gráficos para clima, iluminação e efeitos visuais
+
+dt0e.img
+Dados de configuração para inteligência artificial e comportamento dos jogadores
+
+dt0f.img
+Dados de configuração para física e colisões do jogo
+
+
+pes13lb_a.sfd
+Vídeos de placas publicitárias (advertising boards) no PES 2013
+
+pes13pv.sfd
+O maior arquivo .sfd, provavelmente contém um vídeo de alta qualidade para marketing ou introdução do jogo
+
+pes13sc_a.sfd
+Vídeos de comemorações (celebrations) no PES 2013
+
+
+pes13cl_a.sfd, pes13cl_b.sfd, pes13cl_c.sfd
+Vídeos relacionados à Champions League no PES 2013 (introdução, replays, celebrações)
+
+pes13el_a.sfd, pes13el_b.sfd, pes13el_c.sfd
+Vídeos relacionados à Europa League no PES 2013
