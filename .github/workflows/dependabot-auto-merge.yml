@@ -1,0 +1,146 @@
+name: Auto-merge Dependabot PRs
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: read
+
+jobs:
+  auto-merge:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch PR metadata
+        id: metadata
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            
+            core.setOutput('pr_number', pr.number);
+            core.setOutput('pr_title', pr.title);
+            core.setOutput('pr_head_sha', pr.head.sha);
+            core.info(`Processing Dependabot PR #${pr.number}: ${pr.title}`);
+
+      - name: Wait for required checks to pass
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prHeadSha = '${{ steps.metadata.outputs.pr_head_sha }}';
+            const maxAttempts = 60;
+            const intervalMs = 30000; // 30 seconds
+            
+            let allChecksPassed = false;
+            let attempts = 0;
+            
+            while (attempts < maxAttempts && !allChecksPassed) {
+              attempts++;
+              core.info(`Attempt ${attempts}/${maxAttempts}: Checking status...`);
+              
+              // Get combined status for the PR head commit
+              try {
+                const { data: combinedStatus } = await github.rest.repos.getCombinedStatusForRef({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: prHeadSha,
+                  per_page: 100
+                });
+                
+                core.info(`Combined status: ${combinedStatus.state}`);
+                
+                if (combinedStatus.state === 'success') {
+                  allChecksPassed = true;
+                  core.info('All checks passed!');
+                  break;
+                } else if (combinedStatus.state === 'failure') {
+                  core.setFailed('Some checks failed');
+                  break;
+                }
+              } catch (error) {
+                // Fallback to checking PR checks directly
+                core.info('Falling back to checks API...');
+                try {
+                  const { data: checkRuns } = await github.rest.checks.listForRef({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    ref: prHeadSha,
+                    status: 'completed',
+                    per_page: 100
+                  });
+                  
+                  const failedRuns = checkRuns.check_runs.filter(run => run.conclusion === 'failure');
+                  const successRuns = checkRuns.check_runs.filter(run => run.conclusion === 'success');
+                  const inProgressRuns = checkRuns.check_runs.filter(run => run.status !== 'completed');
+                  
+                  if (failedRuns.length > 0) {
+                    core.setFailed(`Failed checks: ${failedRuns.map(r => r.name).join(', ')}`);
+                    break;
+                  }
+                  
+                  if (inProgressRuns.length === 0 && successRuns.length > 0) {
+                    allChecksPassed = true;
+                    core.info('All checks passed!');
+                    break;
+                  }
+                } catch (checkError) {
+                  core.warning(`Error checking status: ${checkError.message}`);
+                }
+              }
+              
+              if (!allChecksPassed && attempts < maxAttempts) {
+                core.info(`Waiting ${intervalMs/1000} seconds before next attempt...`);
+                await new Promise(resolve => setTimeout(resolve, intervalMs));
+              }
+            }
+            
+            if (!allChecksPassed && attempts >= maxAttempts) {
+              core.warning('Max wait time reached, proceeding anyway');
+            }
+            
+            core.setOutput('all_passed', allChecksPassed.toString());
+
+      - name: Enable auto-merge
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = parseInt('${{ steps.metadata.outputs.pr_number }}');
+            
+            try {
+              await github.rest.pulls.enableAutoMerge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                auto_merge_method: 'SQUASH'
+              });
+              core.info('Auto-merge enabled successfully');
+            } catch (error) {
+              // Fallback to direct merge if auto-merge fails
+              core.info(`Auto-merge enable failed: ${error.message}. Trying direct merge...`);
+              
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+              
+              if (!pr.mergeable) {
+                core.setFailed('PR is not mergeable');
+                return;
+              }
+              
+              try {
+                await github.rest.pulls.merge({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: prNumber,
+                  merge_method: 'squash'
+                });
+                core.info('PR merged successfully via direct merge');
+              } catch (mergeError) {
+                core.setFailed(`Failed to merge PR: ${mergeError.message}`);
+              }
+            }
