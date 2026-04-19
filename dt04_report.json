@@ -1,0 +1,103 @@
+{
+  "metadata": {
+    "file": "dt04.img",
+    "analysis_date": "2026-04-19T15:35:05.451213",
+    "total_size": 10121216,
+    "format": "AFS (Konami)",
+    "version": 80,
+    "md5": "86819f4d561f2d7eb2889ab5c875d84c"
+  },
+  "structure": {
+    "header": {
+      "offset": 0,
+      "size": 16,
+      "fields": [
+        {
+          "name": "signature",
+          "type": "char[4]",
+          "value": "AFS",
+          "description": "Formato identifier"
+        },
+        {
+          "name": "version",
+          "type": "uint32",
+          "value": 80,
+          "description": "AFS version"
+        },
+        {
+          "name": "entries",
+          "type": "uint32",
+          "value": 2048,
+          "description": "Number of entries"
+        },
+        {
+          "name": "reserved",
+          "type": "uint32",
+          "value": 0,
+          "description": "Reserved"
+        }
+      ]
+    },
+    "entry_table": {
+      "offset": 16,
+      "size": 16384,
+      "entries": 2048,
+      "entry_size": 8,
+      "fields": [
+        {
+          "name": "offset",
+          "type": "uint32",
+          "description": "Data offset from file start"
+        },
+        {
+          "name": "size",
+          "type": "uint32",
+          "description": "Data size in bytes"
+        }
+      ]
+    }
+  },
+  "resource_mapping": {
+    "faces": {
+      "pes_ids": [
+        131,
+        2007
+      ],
+      "table_indices": [
+        0,
+        1876
+      ],
+      "count": 1877,
+      "type": "Bitmap/DDS"
+    },
+    "boots": {
+      "pes_ids": [
+        6206,
+        6636
+      ],
+      "table_indices": [
+        6075,
+        6505
+      ],
+      "count": 431,
+      "type": "DDS"
+    },
+    "kits": {
+      "pes_ids": [
+        6360,
+        6819
+      ],
+      "table_indices": [
+        6229,
+        6688
+      ],
+      "count": 460,
+      "type": "DDS"
+    }
+  },
+  "capabilities": {
+    "extraction": true,
+    "carving": true,
+    "emulation": true
+  }
+}
