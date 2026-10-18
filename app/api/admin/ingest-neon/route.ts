@@ -134,7 +134,7 @@ export async function POST(request: Request) {
     ];
     for (let i = 0; i < sourceRows.length; i += 100) {
       const batch = sourceRows.slice(i, i + 100);
-      const values: unknown[] = [];
+      const values: any[] = [];
       const groups = batch.map((s, ri) => {
         const row = [
           s.sourceId, s.type, s.uri, s.title, s.language, s.hash,
@@ -160,11 +160,11 @@ export async function POST(request: Request) {
     ];
     let inserted = 0;
     let processed = 0;
-    let batch: unknown[][] = [];
+    let batch: any[][] = [];
 
     const flush = async () => {
       if (!batch.length) return;
-      const values: unknown[] = [];
+      const values: any[] = [];
       const groups = batch.map((row, ri) => '(' + row.map((value, ci) => {
         values.push(value);
         const cast = ci === 6 ? '::text[]' : ([7, 8, 9, 10].includes(ci) ? '::jsonb' : '');
