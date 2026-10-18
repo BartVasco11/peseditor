@@ -23,8 +23,23 @@ const hash = (value: string) =>
 const sourceIdFor = (type: string, uri: string) =>
   'ingest_' + hash(type + '\0' + uri).slice(0, 40);
 
-const getSourceUri = (row: Record<string, any>) =>
-  String(row.source_path || row.url || row.canonical_uri || row.source_url || ('unknown:' + row.chunk_id));
+const getSourceUri = (row: Record<string, any>) => {
+  const raw = String(row.source_path || row.url || row.canonical_uri || row.source_url || ('unknown:' + row.chunk_id));
+  if (/^[A-Za-z]:[\\/]/.test(raw)) {
+    const parts = raw.replace(/\\/g, '/').split('/');
+    return 'file:///' + parts.map((part, index) => index === 0 ? part : encodeURIComponent(part)).join('/');
+  }
+  if (/^file:\/\//i.test(raw)) {
+    try { return new URL(raw).href; } catch { return raw; }
+  }
+  return raw;
+};
+
+const getSourceType = (uri: string) => {
+  if (/^https?:\/\//i.test(uri)) return 'web';
+  if (/\.jsonl(?:#.*)?$/i.test(uri)) return 'dataset';
+  return 'file';
+};
 
 async function* readRows(file: string) {
   const lines = createInterface({
@@ -106,7 +121,7 @@ export async function POST(request: Request) {
     for await (const row of readRows(file)) {
       inputCount++;
       const uri = getSourceUri(row);
-      const type = /^https?:\/\//i.test(uri) ? 'web' : 'file';
+      const type = getSourceType(uri);
       const sourceId = sourceIdFor(type, uri);
       const metadata = {
         ...(row.metadata && typeof row.metadata === 'object' ? row.metadata : {}),
@@ -115,8 +130,8 @@ export async function POST(request: Request) {
         source_sha256: row.source_sha256 ?? null,
         ingestion_file: basename(sourceUrl.pathname),
       };
-      if (!sourceMap.has(sourceId)) {
-        sourceMap.set(sourceId, {
+      if (!sourceMap.has(uri)) {
+        sourceMap.set(uri, {
           sourceId, type, uri,
           title: row.title || basename(uri.replace(/[?#].*$/, '').replace(/\\/g, '/')) || uri,
           language: row.language || 'und',
@@ -127,6 +142,19 @@ export async function POST(request: Request) {
       }
     }
 
+    const existingSources = await sql.unsafe(
+      'SELECT source_id, canonical_uri, source_type FROM football_rag.sources WHERE canonical_uri = ANY($1::text[])',
+      [[...sourceMap.keys()]],
+    );
+    const existingByUri = new Map(existingSources.map((row: any) => [row.canonical_uri, row]));
+    for (const [uri, source] of sourceMap) {
+      const existing = existingByUri.get(uri) as any;
+      if (existing) {
+        source.sourceId = existing.source_id;
+        source.type = existing.source_type;
+      }
+    }
+    const resolvedSourceIds = new Map([...sourceMap].map(([uri, source]) => [uri, source.sourceId]));
     const sourceRows = [...sourceMap.values()];
     const sourceColumns = [
       'source_id','source_type','canonical_uri','title','language',
@@ -182,8 +210,8 @@ export async function POST(request: Request) {
 
     for await (const row of readRows(file)) {
       const uri = getSourceUri(row);
-      const type = /^https?:\/\//i.test(uri) ? 'web' : 'file';
-      const sourceId = sourceIdFor(type, uri);
+      const type = getSourceType(uri);
+      const sourceId = resolvedSourceIds.get(uri) || sourceIdFor(type, uri);
       const chunkId = String(row.chunk_id || hash(sourceId + '\0' + (row.chunk_index ?? 0) + '\0' + row.content));
       batch.push([
         chunkId, sourceId, Number.isInteger(row.chunk_index) ? row.chunk_index : Number(row.chunk_index || 0),
