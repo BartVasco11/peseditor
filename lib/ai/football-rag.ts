@@ -33,7 +33,7 @@ function getClient() {
 function buildTsQuery(input: string) {
   const tokens = input.normalize('NFKC').match(/[\p{L}\p{N}]{2,}/gu) ?? [];
   const stopwords = new Set(['the', 'and', 'for', 'with', 'that', 'this', 'how', 'what', 'why', 'when', 'where', 'can', 'could', 'would', 'should', 'de', 'da', 'do', 'das', 'dos', 'e', 'ou', 'em', 'no', 'na', 'nos', 'nas', 'para', 'por', 'com', 'sem', 'que', 'um', 'uma', 'uns', 'umas', 'ao', 'aos', 'as', 'os', 'o', 'a']);
-  const uniqueTokens = [...new Set(tokens.map((token) => token.toLowerCase()).filter((token) => !stopwords.has(token) && (/[\\p{L}]/u.test(token) ? token.length >= 3 : token.length >= 2)))].slice(0, 12);
+  const uniqueTokens = [...new Set(tokens.map((token) => token.toLowerCase()).filter((token) => !stopwords.has(token) && (/[\p{L}]/u.test(token) ? token.length >= 3 : token.length >= 2)))].slice(0, 12);
   return uniqueTokens.map((token) => `${token}:*`).join(' | ');
 }
 
